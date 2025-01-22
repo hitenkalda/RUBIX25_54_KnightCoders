@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { Link } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { Star, MapPin, Bed, Bath, Home, DollarSign, Calendar } from 'lucide-react';
+import BookingCalendar from '../components/BookingCalender'; // Import the new component
 
 export default function HousingDetailsPage() {
   const { id } = useParams();
+  const [isTourModalOpen, setIsTourModalOpen] = useState(false); // Controls if the calendar modal is open
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const handleScheduleTour = () => {
+    setIsTourModalOpen(true); // Open the calendar modal when user clicks "Schedule a Tour"
+  };
+
+  const handleCloseModal = () => {
+    setIsTourModalOpen(false); // Close the calendar modal
+  };
+
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    alert(`Your tour has been successfully scheduled for ${date}!`);
+    setIsTourModalOpen(false); // Close the modal after selecting a date
+  };
 
   // Mock data for demonstration
   const housing = {
     id: 1,
     title: 'Modern Downtown Apartment',
     location: 'Downtown, San Francisco',
+    coordinates: { lat: 37.7749, lng: -122.4194 },
     price: 1200,
     image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000',
     rating: 4.5,
@@ -19,17 +39,23 @@ export default function HousingDetailsPage() {
     sqft: 850,
     description: 'Beautiful modern apartment in the heart of downtown. Features updated appliances, in-unit laundry, and a private balcony with city views.',
     amenities: ['In-unit Laundry', 'Dishwasher', 'Central Heat/AC', 'Balcony', 'Pet Friendly'],
+    nearbyAmenities: [
+      { name: 'City Park', coordinates: { lat: 37.776, lng: -122.418 } },
+      { name: 'Grocery Store', coordinates: { lat: 37.775, lng: -122.420 } },
+      { name: 'School', coordinates: { lat: 37.773, lng: -122.417 } },
+    ],
     reviews: [
       { id: 1, user: 'John D.', rating: 5, comment: 'Excellent location and amenities!' },
       { id: 2, user: 'Sarah M.', rating: 4, comment: 'Great value for the area.' },
-    ]
+    ],
+    unavailableDates: ['2025-01-25', '2025-01-28', '2025-01-30'], // Mock unavailable dates
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          <img src={housing.image} alt={housing.title} className="w-full h-96 object-cover rounded-lg" />
+          <img src={housing.image} alt={housing.title} className="w-full h-96 object-cover rounded-lg shadow-md" />
           <div className="mt-8">
             <h2 className="text-2xl font-bold text-gray-900">{housing.title}</h2>
             <div className="mt-2 flex items-center space-x-4">
@@ -84,17 +110,51 @@ export default function HousingDetailsPage() {
               </div>
             </div>
 
-            <button className="mt-6 w-full bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 flex items-center justify-center">
+            <button
+              className="mt-6 w-full bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 flex items-center justify-center"
+              onClick={handleScheduleTour} // Show calendar modal when clicked
+            >
               <Calendar className="w-5 h-5 mr-2" />
               Schedule a Tour
             </button>
 
+            {/* Conditionally render the BookingCalendar component only if isTourModalOpen is true */}
+            {isTourModalOpen && (
+              <BookingCalendar
+                unavailableDates={housing.unavailableDates}
+                onDateSelect={handleDateSelect}
+                onClose={handleCloseModal} // Close the calendar modal
+              />
+            )}
+
             <Link
-  to="/apply/:id"
-  className="mt-4 w-full bg-white text-indigo-600 px-6 py-3 rounded-md border-2 border-indigo-600 hover:bg-indigo-50"
->
-  Apply Now
-</Link>
+              to="/apply/:id"
+              className="mt-4 w-full bg-white text-indigo-600 px-6 py-3 rounded-md border-2 border-indigo-600 hover:bg-indigo-50 block text-center"
+            >
+              Apply Now
+            </Link>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold">Property Location</h3>
+            <MapContainer
+              center={[housing.coordinates.lat, housing.coordinates.lng]}
+              zoom={14}
+              className="h-72 w-full rounded-lg mt-4"
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              <Marker position={[housing.coordinates.lat, housing.coordinates.lng]}>
+                <Popup>{housing.location}</Popup>
+              </Marker>
+              {housing.nearbyAmenities.map((amenity, index) => (
+                <Marker key={index} position={[amenity.coordinates.lat, amenity.coordinates.lng]}>
+                  <Popup>{amenity.name}</Popup>
+                </Marker>
+              ))}
+            </MapContainer>
           </div>
 
           <div className="mt-8">
